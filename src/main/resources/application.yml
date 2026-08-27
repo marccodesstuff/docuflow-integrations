@@ -1,0 +1,198 @@
+spring:
+  application:
+    name: docuflow-integrations
+  
+  # Kafka
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: docuflow-integrations
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+  
+  # RabbitMQ
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+  
+  # Security
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${OAUTH2_ISSUER_URI:http://localhost:8080/realms/docuflow}
+          jwk-set-uri: ${OAUTH2_JWK_SET_URI:http://localhost:8080/realms/docuflow/protocol/openid-connect/certs}
+
+# Camel
+camel:
+  springboot:
+    name: docuflow-integrations
+    main-run-controller: true
+  component:
+    servlet:
+      mapping:
+        context-path: /camel/*
+
+# Integration Config
+docuflow:
+  integrations:
+    # ERP Connectors
+    erp:
+      sap:
+        enabled: ${SAP_ENABLED:false}
+        host: ${SAP_HOST:}
+        client: ${SAP_CLIENT:}
+        user: ${SAP_USER:}
+        password: ${SAP_PASSWORD:}
+        system-number: ${SAP_SYSTEM_NUMBER:}
+        language: ${SAP_LANGUAGE:EN}
+      netsuite:
+        enabled: ${NETSUITE_ENABLED:false}
+        account-id: ${NETSUITE_ACCOUNT_ID:}
+        consumer-key: ${NETSUITE_CONSUMER_KEY:}
+        consumer-secret: ${NETSUITE_CONSUMER_SECRET:}
+        token-id: ${NETSUITE_TOKEN_ID:}
+        token-secret: ${NETSUITE_TOKEN_SECRET:}
+      odoo:
+        enabled: ${ODOO_ENABLED:false}
+        url: ${ODOO_URL:}
+        database: ${ODOO_DATABASE:}
+        username: ${ODOO_USERNAME:}
+        password: ${ODOO_PASSWORD:}
+    
+    # EDI
+    edi:
+      enabled: ${EDI_ENABLED:false}
+      partner-id: ${EDI_PARTNER_ID:}
+      partner-qualifier: ${EDI_PARTNER_QUALIFIER:ZZ}
+      our-id: ${EDI_OUR_ID:}
+      our-qualifier: ${EDI_OUR_QUALIFIER:ZZ}
+      interchange-control-number: 1
+      segment-terminator: "'"
+      element-separator: "*"
+      component-separator: ":"
+      repetition-separator: "^"
+    
+    # Webhook Delivery
+    webhook:
+      max-retries: 5
+      retry-delays-seconds: [60, 300, 900, 3600, 21600]
+      timeout-seconds: 10
+      signature-header: X-DocuFlow-Signature
+      max-payload-size-mb: 10
+    
+    # Email Notifications
+    email:
+      enabled: ${EMAIL_ENABLED:false}
+      smtp-host: ${SMTP_HOST:}
+      smtp-port: ${SMTP_PORT:587}
+      username: ${SMTP_USERNAME:}
+      password: ${SMTP_PASSWORD:}
+      from-address: ${EMAIL_FROM:noreply@docuflow.io}
+      use-tls: true
+    
+    # SMS Notifications
+    sms:
+      enabled: ${SMS_ENABLED:false}
+      provider: ${SMS_PROVIDER:twilio}  # twilio | vonage | plivo
+      twilio:
+        account-sid: ${TWILIO_ACCOUNT_SID:}
+        auth-token: ${TWILIO_AUTH_TOKEN:}
+        from-number: ${TWILIO_FROM_NUMBER:}
+      vonage:
+        api-key: ${VONAGE_API_KEY:}
+        api-secret: ${VONAGE_API_SECRET:}
+        from-number: ${VONAGE_FROM_NUMBER:}
+    
+    # Cloud Storage Sync
+    storage-sync:
+      enabled: ${STORAGE_SYNC_ENABLED:false}
+      aws:
+        enabled: ${AWS_SYNC_ENABLED:false}
+        region: ${AWS_REGION:us-east-1}
+        bucket: ${AWS_SYNC_BUCKET:}
+        access-key: ${AWS_ACCESS_KEY_ID:}
+        secret-key: ${AWS_SECRET_ACCESS_KEY:}
+      azure:
+        enabled: ${AZURE_SYNC_ENABLED:false}
+        account-name: ${AZURE_STORAGE_ACCOUNT:}
+        account-key: ${AZURE_STORAGE_KEY:}
+        container: ${AZURE_CONTAINER:}
+      gcp:
+        enabled: ${GCP_SYNC_ENABLED:false}
+        project-id: ${GCP_PROJECT_ID:}
+        bucket: ${GCP_BUCKET:}
+        credentials-file: ${GCP_CREDENTIALS_FILE:}
+
+# Actuator / Observability
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,loggers,beans,conditions,camelroutes
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    export:
+      prometheus:
+        enabled: true
+  tracing:
+    sampling:
+      probability: 1.0
+
+# Logging
+logging:
+  level:
+    com.docuflow.integrations: DEBUG
+    org.apache.camel: INFO
+    org.apache.kafka: WARN
+    org.springframework.amqp: INFO
+  pattern:
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(${LOG_LEVEL_PATTERN:%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:%wEx}"
+
+---
+# Test Profile
+spring:
+  config:
+    activate:
+      on-profile: test
+
+  kafka:
+    bootstrap-servers: ${spring.embedded.kafka.brokers}
+  
+  rabbitmq:
+    host: localhost
+    port: 5672
+
+docuflow:
+  integrations:
+    erp:
+      sap:
+        enabled: false
+      netsuite:
+        enabled: false
+      odoo:
+        enabled: false
+    edi:
+      enabled: false
+    webhook:
+      max-retries: 1
+      retry-delays-seconds: [1]
+      timeout-seconds: 5
+    email:
+      enabled: false
+    sms:
+      enabled: false
+    storage-sync:
+      enabled: false
